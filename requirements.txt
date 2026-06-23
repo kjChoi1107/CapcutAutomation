@@ -1,0 +1,6 @@
+fastapi==0.128.8
+uvicorn==0.39.0
+python-multipart==0.0.20
+imageio-ffmpeg==0.6.0
+openai-whisper==20240930
+anthropic==0.111.0

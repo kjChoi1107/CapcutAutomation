@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ffmpeg -version)",
+      "Bash(brew --version)",
+      "Bash(pip3 --version)",
+      "Bash(pip3 install *)",
+      "Bash(python3 -c \"import imageio_ffmpeg; print\\('FFmpeg path:', imageio_ffmpeg.get_ffmpeg_exe\\(\\)\\)\")",
+      "Bash(/usr/bin/python3 -m uvicorn main:app --host 0.0.0.0 --port 8000)",
+      "Bash(curl -s http://localhost:8000/api/status)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(kill 14687)",
+      "Bash(/usr/bin/python3 -c ' *)",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__list_connected_browsers",
+      "Bash(curl -s http://localhost:8000/)",
+      "Bash(kill 17262)",
+      "Bash(cat > *)",
+      "Bash(cp /Users/a10955/Documents/Project/CapcutAutomation/pipeline/*.py /tmp/shorts_app/pipeline/)",
+      "Bash(sed -i '' 's|BASE_DIR = Path\\(__file__\\).parent|BASE_DIR = Path\\(\"/Users/a10955/Documents/Project/CapcutAutomation\"\\)|' /tmp/shorts_app/main.py)",
+      "Bash(ln -sf /Users/a10955/Documents/Project/CapcutAutomation/static /tmp/shorts_app/static)",
+      "Bash(ln -sf /Users/a10955/Documents/Project/CapcutAutomation/uploads /tmp/shorts_app/uploads)",
+      "Bash(ln -sf /Users/a10955/Documents/Project/CapcutAutomation/output /tmp/shorts_app/output)",
+      "Bash(/bin/cp -f /Users/a10955/Documents/Project/CapcutAutomation/static/index.html /tmp/shorts_app/static/index.html)"
+    ]
+  }
+}

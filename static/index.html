@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shorts Auto Editor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f13;
+    color: #e8e8f0;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #7c6cf1, #e066b0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    text-align: center;
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 32px;
+  }
+
+  .container { max-width: 860px; margin: 0 auto; }
+
+  /* Upload area */
+  .upload-area {
+    border: 2px dashed #3a3a4e;
+    border-radius: 16px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #17171f;
+    margin-bottom: 24px;
+  }
+  .upload-area:hover, .upload-area.drag-over {
+    border-color: #7c6cf1;
+    background: #1e1e2a;
+  }
+  .upload-area .icon { font-size: 3rem; margin-bottom: 12px; }
+  .upload-area p { color: #aaa; font-size: 0.95rem; }
+  .upload-area strong { color: #e8e8f0; }
+  #fileInput { display: none; }
+
+  /* Progress pipeline */
+  .pipeline {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .stage-pill {
+    flex: 1;
+    min-width: 120px;
+    background: #17171f;
+    border: 1px solid #2a2a3a;
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: center;
+    font-size: 0.78rem;
+    color: #666;
+    transition: all 0.3s;
+  }
+  .stage-pill.active { border-color: #7c6cf1; color: #7c6cf1; background: #1e1a30; }
+  .stage-pill.done { border-color: #3ecf8e; color: #3ecf8e; background: #0e2019; }
+  .stage-pill.error { border-color: #e05858; color: #e05858; background: #200e0e; }
+  .stage-pill .num { font-size: 1.1rem; font-weight: 700; display: block; }
+
+  /* Result cards */
+  .card {
+    background: #17171f;
+    border: 1px solid #2a2a3a;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card h3 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #7c6cf1;
+    margin-bottom: 14px;
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .info-item { background: #0f0f13; border-radius: 8px; padding: 10px 12px; }
+  .info-item .label { font-size: 0.72rem; color: #666; margin-bottom: 4px; }
+  .info-item .value { font-size: 1rem; font-weight: 600; color: #e8e8f0; }
+
+  /* Transcript */
+  .transcript-box {
+    background: #0f0f13;
+    border-radius: 8px;
+    padding: 14px;
+    max-height: 240px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: #ccc;
+  }
+  .seg { margin-bottom: 6px; }
+  .seg .ts { color: #7c6cf1; font-size: 0.75rem; font-weight: 600; margin-right: 6px; }
+
+  /* Highlight */
+  .highlight-box {
+    background: linear-gradient(135deg, #1e1a30, #0e1a20);
+    border: 1px solid #7c6cf1;
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .highlight-range {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #7c6cf1;
+    margin-bottom: 8px;
+  }
+  .highlight-reason { font-size: 0.85rem; color: #aaa; }
+
+  /* Title */
+  .title-display {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #e8e8f0;
+    background: #0f0f13;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    border-left: 3px solid #7c6cf1;
+  }
+
+  /* Video preview */
+  video {
+    width: 100%;
+    max-height: 500px;
+    border-radius: 10px;
+    background: #000;
+    margin-top: 12px;
+  }
+  .video-portrait { max-width: 280px; margin: 12px auto 0; display: block; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: #7c6cf1; color: #fff; }
+  .btn-primary:hover { background: #6a5bdf; }
+  .btn-success { background: #3ecf8e; color: #000; }
+  .btn-success:hover { background: #2db87d; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+
+  /* Spinner */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* API key input */
+  .api-key-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #17171f;
+    border: 1px solid #2a2a3a;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+  }
+  .api-key-row label { font-size: 0.8rem; color: #888; white-space: nowrap; }
+  .api-key-row input {
+    flex: 1;
+    background: #0f0f13;
+    border: 1px solid #2a2a3a;
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: #e8e8f0;
+    font-size: 0.85rem;
+  }
+  .api-key-row input:focus { outline: none; border-color: #7c6cf1; }
+
+  /* Model selector */
+  .model-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .model-row label { font-size: 0.8rem; color: #888; white-space: nowrap; }
+  .model-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .model-pill {
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #2a2a3a;
+    background: #17171f;
+    color: #888;
+    transition: all 0.15s;
+  }
+  .model-pill:hover { border-color: #7c6cf1; color: #c0b8f8; }
+  .model-pill.selected { background: #7c6cf1; border-color: #7c6cf1; color: #fff; }
+  .model-badge {
+    font-size: 0.65rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .badge-fast { background: #1a3a1a; color: #3ecf8e; }
+  .badge-best { background: #2a1a3a; color: #b07cf1; }
+
+  .hidden { display: none !important; }
+
+  .download-btn {
+    display: block;
+    text-align: center;
+    margin-top: 14px;
+    padding: 12px;
+    background: linear-gradient(135deg, #7c6cf1, #e066b0);
+    color: #fff;
+    border-radius: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 1rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>✂️ Shorts Auto Editor</h1>
+  <p class="subtitle">영상을 업로드하면 AI가 20초 숏츠로 자동 편집합니다</p>
+
+  <!-- API Key -->
+  <div class="api-key-row">
+    <label>🔑 Anthropic API Key</label>
+    <input type="password" id="apiKey" placeholder="sk-ant-..." />
+  </div>
+
+  <!-- Whisper Model -->
+  <div class="model-row">
+    <label>🎙 Whisper 모델</label>
+    <div class="model-pills">
+      <div class="model-pill" data-model="tiny">tiny<span class="model-badge badge-fast">최속</span></div>
+      <div class="model-pill" data-model="base">base<span class="model-badge badge-fast">빠름</span></div>
+      <div class="model-pill selected" data-model="small">small<span class="model-badge" style="background:#1a2a3a;color:#7cb8f1">권장</span></div>
+      <div class="model-pill" data-model="medium">medium</div>
+      <div class="model-pill" data-model="large-v3">large-v3<span class="model-badge badge-best">최고</span></div>
+    </div>
+  </div>
+
+  <!-- Upload -->
+  <div class="upload-area" id="uploadArea">
+    <div class="icon">🎬</div>
+    <p><strong>영상을 드래그하거나 클릭해서 업로드</strong></p>
+    <p style="margin-top:6px">MP4, MOV, AVI, MKV, WEBM 지원</p>
+    <input type="file" id="fileInput" accept="video/*" />
+  </div>
+
+  <!-- Stage pills -->
+  <div class="pipeline">
+    <div class="stage-pill" id="pill-1"><span class="num">1</span>영상 분석</div>
+    <div class="stage-pill" id="pill-2"><span class="num">2</span>음성 전사</div>
+    <div class="stage-pill" id="pill-3"><span class="num">3</span>하이라이트</div>
+    <div class="stage-pill" id="pill-4"><span class="num">4</span>클리핑</div>
+    <div class="stage-pill" id="pill-5"><span class="num">5</span>최종 렌더</div>
+  </div>
+
+  <!-- Results -->
+  <div id="results"></div>
+</div>
+
+<script>
+// localhost:8000 이 아닌 모든 환경(file://, 프록시, 앱 내장 뷰 등)에서
+// 절대 경로로 요청하도록 설정
+const API_BASE = (window.location.hostname === 'localhost' && window.location.port === '8000')
+  ? ''
+  : 'http://localhost:8000';
+
+const state = { videoId: null, transcriptData: null, highlightData: null, whisperModel: 'small' };
+
+// Model pill selection
+document.querySelectorAll('.model-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.model-pill').forEach(p => p.classList.remove('selected'));
+    pill.classList.add('selected');
+    state.whisperModel = pill.dataset.model;
+  });
+});
+
+// Upload area
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+function setPill(n, status) {
+  const pill = document.getElementById(`pill-${n}`);
+  pill.className = 'stage-pill ' + status;
+}
+
+function appendCard(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  document.getElementById('results').appendChild(div.firstElementChild);
+}
+
+function clearResults() {
+  document.getElementById('results').innerHTML = '';
+  [1,2,3,4,5].forEach(n => setPill(n, ''));
+}
+
+async function handleFile(file) {
+  clearResults();
+  setPill(1, 'active');
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  appendCard(`
+    <div class="card" id="card-1">
+      <h3>Stage 1 — 영상 분석</h3>
+      <div style="color:#888;font-size:0.9rem"><span class="spinner"></span> 업로드 중...</div>
+    </div>`);
+
+  try {
+    const res = await fetch(API_BASE + '/api/upload', { method: 'POST', body: formData });
+    if (!res.ok) throw new Error(await res.text());
+    const info = await res.json();
+    state.videoId = info.video_id;
+
+    document.getElementById('card-1').innerHTML = `
+      <h3>Stage 1 — 영상 분석 완료</h3>
+      <div class="info-grid">
+        <div class="info-item"><div class="label">파일명</div><div class="value" style="font-size:0.8rem">${info.file}</div></div>
+        <div class="info-item"><div class="label">길이</div><div class="value">${info.duration}초</div></div>
+        <div class="info-item"><div class="label">해상도</div><div class="value">${info.width}×${info.height}</div></div>
+        <div class="info-item"><div class="label">FPS</div><div class="value">${info.fps}</div></div>
+        <div class="info-item"><div class="label">코덱</div><div class="value">${info.codec}</div></div>
+        <div class="info-item"><div class="label">비율</div><div class="value">${info.aspect_ratio}</div></div>
+        <div class="info-item"><div class="label">오디오</div><div class="value">${info.has_audio ? '있음 🎵' : '없음'}</div></div>
+        <div class="info-item"><div class="label">파일 크기</div><div class="value">${info.file_size_mb} MB</div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runTranscribe()">Stage 2: 음성 전사 시작 →</button>
+      </div>`;
+    setPill(1, 'done');
+  } catch (e) {
+    document.getElementById('card-1').innerHTML = `<h3>Stage 1 — 오류</h3><div style="color:#e05858">${e.message}</div>`;
+    setPill(1, 'error');
+  }
+}
+
+async function runTranscribe() {
+  setPill(2, 'active');
+  appendCard(`
+    <div class="card" id="card-2">
+      <h3>Stage 2 — 음성 전사</h3>
+      <div style="color:#888;font-size:0.9rem"><span class="spinner"></span> Whisper로 전사 중... (영상 길이에 따라 1~3분 소요)</div>
+    </div>`);
+
+  try {
+    const res = await fetch(API_BASE + `/api/transcribe/${state.videoId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: state.whisperModel }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    state.transcriptData = data;
+
+    const segsHtml = (data.segments || []).map(s =>
+      `<div class="seg"><span class="ts">[${fmt(s.start)}~${fmt(s.end)}]</span>${s.text}</div>`
+    ).join('') || `<div class="seg">${data.text || '(전사 내용 없음)'}</div>`;
+
+    document.getElementById('card-2').innerHTML = `
+      <h3>Stage 2 — 음성 전사 완료</h3>
+      <div class="info-grid" style="margin-bottom:12px">
+        <div class="info-item"><div class="label">언어</div><div class="value">${data.language || '자동감지'}</div></div>
+        <div class="info-item"><div class="label">세그먼트 수</div><div class="value">${(data.segments||[]).length}개</div></div>
+      </div>
+      <div class="transcript-box">${segsHtml}</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runHighlight()">Stage 3: AI 하이라이트 감지 →</button>
+      </div>`;
+    setPill(2, 'done');
+  } catch (e) {
+    document.getElementById('card-2').innerHTML = `<h3>Stage 2 — 오류</h3><div style="color:#e05858">${e.message}</div>`;
+    setPill(2, 'error');
+  }
+}
+
+async function runHighlight() {
+  setPill(3, 'active');
+  appendCard(`
+    <div class="card" id="card-3">
+      <h3>Stage 3 — AI 하이라이트 감지</h3>
+      <div style="color:#888;font-size:0.9rem"><span class="spinner"></span> Claude가 최적 구간 분석 중...</div>
+    </div>`);
+
+  const apiKey = document.getElementById('apiKey').value.trim();
+  try {
+    const res = await fetch(API_BASE + `/api/highlight/${state.videoId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+      body: JSON.stringify({
+        transcript: state.transcriptData?.text || '',
+        segments: state.transcriptData?.segments || [],
+        api_key: apiKey,
+      }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    state.highlightData = data;
+
+    document.getElementById('card-3').innerHTML = `
+      <h3>Stage 3 — 하이라이트 구간 감지 완료</h3>
+      <div class="highlight-box">
+        <div class="highlight-range">⏱ ${fmt(data.start)} ~ ${fmt(data.end)} (${(data.end - data.start).toFixed(1)}초)</div>
+        <div class="highlight-reason">${data.reason || ''}</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runClip()">Stage 4: 영상 클리핑 →</button>
+      </div>`;
+    setPill(3, 'done');
+  } catch (e) {
+    document.getElementById('card-3').innerHTML = `<h3>Stage 3 — 오류</h3><div style="color:#e05858">${e.message}</div>`;
+    setPill(3, 'error');
+  }
+}
+
+async function runClip() {
+  setPill(4, 'active');
+  appendCard(`
+    <div class="card" id="card-4">
+      <h3>Stage 4 — 영상 클리핑</h3>
+      <div style="color:#888;font-size:0.9rem"><span class="spinner"></span> 구간 추출 및 세로(9:16) 변환 중...</div>
+    </div>`);
+
+  try {
+    const res = await fetch(API_BASE + `/api/clip/${state.videoId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ start: state.highlightData.start, end: state.highlightData.end }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    document.getElementById('card-4').innerHTML = `
+      <h3>Stage 4 — 클리핑 완료</h3>
+      <div class="info-grid" style="margin-bottom:12px">
+        <div class="info-item"><div class="label">길이</div><div class="value">${data.duration?.toFixed(1)}초</div></div>
+        <div class="info-item"><div class="label">해상도</div><div class="value">${data.resolution}</div></div>
+      </div>
+      <video src="${API_BASE}/output/${state.videoId}_clip.mp4" controls class="video-portrait"></video>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runRender()">Stage 5: 제목·자막 추가 →</button>
+      </div>`;
+    setPill(4, 'done');
+  } catch (e) {
+    document.getElementById('card-4').innerHTML = `<h3>Stage 4 — 오류</h3><div style="color:#e05858">${e.message}</div>`;
+    setPill(4, 'error');
+  }
+}
+
+async function runRender() {
+  setPill(5, 'active');
+  appendCard(`
+    <div class="card" id="card-5">
+      <h3>Stage 5 — 최종 렌더링</h3>
+      <div style="color:#888;font-size:0.9rem"><span class="spinner"></span> 제목·자막 삽입 및 최종 인코딩 중...</div>
+    </div>`);
+
+  const apiKey = document.getElementById('apiKey').value.trim();
+  try {
+    const res = await fetch(API_BASE + `/api/render/${state.videoId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transcript: state.transcriptData?.text || '',
+        segments: state.transcriptData?.segments || [],
+        start: state.highlightData?.start || 0,
+        api_key: apiKey,
+      }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    document.getElementById('card-5').innerHTML = `
+      <h3>Stage 5 — 완성! 🎉</h3>
+      <div class="title-display">📌 ${data.title}</div>
+      <video src="${API_BASE}/output/${state.videoId}_final.mp4" controls class="video-portrait"></video>
+      <a href="${API_BASE}/output/${state.videoId}_final.mp4" download class="download-btn">⬇️ 숏츠 다운로드</a>`;
+    setPill(5, 'done');
+  } catch (e) {
+    document.getElementById('card-5').innerHTML = `<h3>Stage 5 — 오류</h3><div style="color:#e05858">${e.message}</div>`;
+    setPill(5, 'error');
+  }
+}
+
+function fmt(s) {
+  const m = Math.floor(s / 60);
+  const sec = (s % 60).toFixed(1).padStart(4, '0');
+  return `${m}:${sec}`;
+}
+</script>
+</body>
+</html>

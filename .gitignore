@@ -1,0 +1,25 @@
+# 업로드/출력 영상 (용량 크고 개인 파일)
+uploads/*
+output/*
+!uploads/.gitkeep
+!output/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+
+# Whisper 모델 캐시
+~/.cache/whisper/
+
+# 환경변수 / API 키
+.env
+.env.local
+
+# macOS
+.DS_Store
+
+# 임시 파일
+/tmp/
+*.log
